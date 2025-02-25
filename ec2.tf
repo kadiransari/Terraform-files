@@ -1,5 +1,4 @@
-[root@ip-172-31-1-22 Terraform-files]# cat ec2.tf 
-provider "aws" {
+ provider "aws" {
   region     = "ap-south-1"
   access_key = "####################"
   secret_key = "######################################"
