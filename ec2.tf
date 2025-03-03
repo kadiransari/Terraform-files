@@ -4,6 +4,17 @@
   secret_key = "######################################"
 }
 
+terraform {
+  backend "s3" {
+    bucket = "cloud-tfstate1"
+    key    = "cloud/tfstate"
+  region     = "us-west-2"
+  access_key = "AKIAXTORHGJHGPGTL43LZJQ6V"
+  secret_key = "jjFS1GGfhIggbhjvxdjuJy8Hinwknys+h4LHE9qyIXvl"
+  dynamodb_table = "cloud-dynamodb"
+  }
+}
+
 # Create EC2-instance
 resource "aws_instance" "ec2-instance" {
   ami           = "ami-0ddfba243cbee3768"
