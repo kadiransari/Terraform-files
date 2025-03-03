@@ -4,6 +4,17 @@ provider "aws" {
   secret_key = "######################################"
 }
 
+terraform {
+  backend "s3" {
+    bucket = "cloud-tfstate1"
+    key    = "cloud/tfstate"
+  region     = "us-west-2"
+  access_key = "AKIAXTORHGJHGPGTL43LZJQ6V"
+  secret_key = "jjFS1GGfhIggbhjvxdjuJy8Hinwknys+h4LHE9qyIXvl"
+  dynamodb_table = "cloud-dynamodb"
+  }
+}
+
 resource "aws_vpc" "my_vpc" {
   cidr_block = "172.16.0.0/16"
 
