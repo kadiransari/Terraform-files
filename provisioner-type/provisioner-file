@@ -1,0 +1,76 @@
+provider "aws" {
+  region     = "us-west-2"
+  access_key = "#####################"   
+  secret_key = "####################################"  
+}
+
+# Create an AWS Key Pair for SSH access
+resource "aws_key_pair" "deployer" {
+  key_name   = "deployer-key"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQC3Fz3kINwrMNMVad4ee0dhBtNqVvHVTEkbUAOp54yMbOicwN24Xvt/O7U1jwKGXcPADsmX6+pFw44b+k9kvLRklRuJ0yMU2+RUTlyLDtUoLWE/wZe5r0Sd1yZqSLvHaxYgXbBnZ0TCHfOtaaXDSLR/xi6XU4Xw9OwWyNaNPINjuYiMEJoZI8Um87c/o9BA3TQpYTV2QveHW1KSx3jM9fNyfx4uuuVo1Tyft1QXnrR9EQ96pzWJTilOGiWW9iy/48uLlWr6NoFE9g1/31CoKpn+ddx9S+xPGE+IC33/z2MJAkM17PgEzcMnbjrTbfRz0Y0h5Ce3BrFqLdkZSt4j+XhNiHJ5m2l8tExzWPClX7kOzMi1y54UzxteEPiJalGrCfYXSDPAR7sysKOR97moCbE0Z84KkLEoIhImAfiJ4TgvHn1a3YIV8LspfEbJzYdpFe1TJneNQOTv2LHoh1v8d3jf31URn3CfxhMaW8AdsuZoPuIzLLNA7k/6LLgbwbx05Fk= root@ip-172-31-20-183.us-west-2.compute.internal"
+}
+
+# attache the default VPC 
+resource "aws_default_vpc" "default" {
+  tags = {
+    Name = "Default VPC"
+  }
+}
+
+# Create a Security Group for instance access
+resource "aws_security_group" "terraform_sg" {
+  name        = "terraform-sg"
+  description = "Allow SSH and HTTP inbound traffic, all outbound traffic"
+  vpc_id      = aws_default_vpc.default.id
+
+  tags = {
+    Name = "terraform-sg"
+  }
+}
+
+# Allow SSH (port 22) access from anywhere
+resource "aws_security_group_rule" "allow_ssh" {
+  security_group_id = aws_security_group.terraform_sg.id
+  type              = "ingress"
+  from_port         = 22
+  to_port           = 22
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+# Allow HTTP (port 80) access from anywhere
+resource "aws_security_group_rule" "allow_http" {
+  security_group_id = aws_security_group.terraform_sg.id
+  type              = "ingress"
+  from_port         = 80
+  to_port           = 80
+  protocol          = "tcp"
+  cidr_blocks       = ["0.0.0.0/0"]
+}
+
+# Create an EC2 instance
+resource "aws_instance" "web" {
+  ami             = "ami-027951e78de46a00e"  # Amazon Linux 2 AMI
+  instance_type   = "t3.micro"              # Free-tier eligible instance type
+  key_name        = aws_key_pair.deployer.key_name 
+  security_groups = [aws_security_group.terraform_sg.name]
+
+  tags = {
+    Name = "HelloWorld"
+  }
+
+  # Provision a file (index.html) to the instance
+  provisioner "file" {
+    source      = "/home/ec2-user/index.html"  # Ensure this file exists on the machine running Terraform
+    destination = "/tmp/index.html"
+  }
+
+  # SSH Connection Details
+  connection {
+    type        = "ssh"
+    host        = self.public_ip
+    user        = "ec2-user"
+    private_key = file("./dev")  # Ensure this private key file exists and matches the public key uploaded
+    timeout     = "5m"  # Increased timeout to 5 minutes for reliability
+  }
+}
